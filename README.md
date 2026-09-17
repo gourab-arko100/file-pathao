@@ -13,7 +13,10 @@ your file bytes never touch the server.
 2. Phone scans the QR (must be online — same Wi-Fi or mobile data both
    work) → opens that room page.
 3. Both browsers exchange a WebRTC "offer/answer" handshake through a
-   tiny signaling API (`/api/signal`), backed by **Vercel KV**.
+   tiny signaling API (`/api/signal`), backed by **Upstash Redis** (via
+   the Vercel Marketplace integration — the client is configured with
+   `automaticDeserialization: false` in `lib/kv.ts` so stored JSON
+   strings aren't silently double-parsed on read).
 4. Once connected, a direct **WebRTC DataChannel** opens between the two
    devices. Files are chunked and streamed straight across it.
 5. The receiving device gets a live progress bar and a download link.
@@ -134,3 +137,19 @@ GitHub CLI.)
   the next file once the current one finishes.
 - Nothing is stored server-side — files stream directly between the two
   browser tabs and disappear once the tab closes.
+- **No compression** — files transfer byte-for-byte identical to the
+  original (no re-encoding of photos/videos).
+- **File size is limited by browser memory, not the app.** The
+  receiving side currently buffers the whole incoming file in memory
+  before offering the download, so very large files can strain mobile
+  browsers (roughly a few hundred MB to ~1-2GB depending on the device;
+  desktop browsers handle more). Fine for photos, docs, and most
+  videos. If you regularly need to send multi-GB files, the receiver
+  would need to be upgraded to stream to disk incrementally instead of
+  buffering in memory.
+- The UI follows a "courier waybill" theme (the name is a nod to
+  Pathao, the Bangladeshi delivery service) — kraft-paper QR label,
+  tracking-code room IDs, and a Waiting → Connecting → Connected
+  stepper. Styling lives in `app/globals.css`, with Instrument Sans
+  (UI text) and IBM Plex Mono (codes/bytes) loaded via `next/font` in
+  `app/layout.tsx`.
