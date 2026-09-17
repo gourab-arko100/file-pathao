@@ -237,11 +237,14 @@ export function useFileTransferPeer(
     const pollIce = window.setInterval(async () => {
       const data = await getSignal({ roomId, kind: "ice", role: "answer" });
       const candidates: string[] = data.candidates || [];
+      console.log(`[FP host] poll: ${candidates.length} remote candidates available, ${iceSeen} applied so far`);
       while (iceSeen < candidates.length) {
         try {
           await pc.addIceCandidate(JSON.parse(candidates[iceSeen]));
+          console.log("[FP host] applied remote candidate", iceSeen);
           iceSeen++;
-        } catch {
+        } catch (err) {
+          console.log("[FP host] failed to apply remote candidate", iceSeen, err);
           // remote description likely isn't set yet — stop here and
           // retry this same candidate on the next poll instead of
           // silently dropping it.
@@ -316,15 +319,17 @@ export function useFileTransferPeer(
     const pollIce = window.setInterval(async () => {
       const data = await getSignal({ roomId, kind: "ice", role: "offer" });
       const candidates: string[] = data.candidates || [];
+      console.log(`[FP client] poll: ${candidates.length} remote candidates available, ${iceSeen} applied so far`);
       while (iceSeen < candidates.length) {
         try {
           await pc.addIceCandidate(JSON.parse(candidates[iceSeen]));
+          console.log("[FP client] applied remote candidate", iceSeen);
           iceSeen++;
-        } catch {
+        } catch (err) {
+          console.log("[FP client] failed to apply remote candidate", iceSeen, err);
           break;
         }
       }
-      iceSeen = candidates.length;
     }, POLL_INTERVAL_MS);
     pollersRef.current.push(pollIce);
   }, [roomId, setupDataChannel]);
