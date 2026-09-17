@@ -264,13 +264,13 @@ export function useFileTransferPeer(
     while (!offerSdp) {
       const data = await getSignal({ roomId, kind: "sdp", role: "offer" });
       if (data.sdp) {
-        offerSdp = data.sdp;
+        offerSdp = data.sdp as string;
         break;
       }
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
     }
 
-    await pc.setRemoteDescription({ type: "offer", sdp: offerSdp });
+    await pc.setRemoteDescription({ type: "offer", sdp: offerSdp as string });
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     await postSignal({
