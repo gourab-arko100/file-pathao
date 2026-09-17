@@ -3,9 +3,16 @@ import { Redis } from "@upstash/redis";
 // Vercel's Redis (Upstash) marketplace integration injects KV_REST_API_URL
 // and KV_REST_API_TOKEN into the project's env vars automatically once the
 // store is connected — see README for how to set this up.
+// automaticDeserialization is disabled so every value we store and read
+// back is a plain string, exactly as we wrote it. Without this, the
+// client tries to auto-JSON.parse anything that looks like JSON on
+// read — which breaks values we've already JSON.stringify'd ourselves
+// (like ICE candidates), since it silently turns them back into objects
+// before our own JSON.parse() ever runs.
 const kv = new Redis({
   url: process.env.KV_REST_API_URL as string,
   token: process.env.KV_REST_API_TOKEN as string,
+  automaticDeserialization: false,
 });
 
 // A signaling "room" lives for a short window only — it's just used to
