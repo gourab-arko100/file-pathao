@@ -224,14 +224,17 @@ export function useFileTransferPeer(
     const pollIce = window.setInterval(async () => {
       const data = await getSignal({ roomId, kind: "ice", role: "answer" });
       const candidates: string[] = data.candidates || [];
-      for (let i = iceSeen; i < candidates.length; i++) {
+      while (iceSeen < candidates.length) {
         try {
-          await pc.addIceCandidate(JSON.parse(candidates[i]));
+          await pc.addIceCandidate(JSON.parse(candidates[iceSeen]));
+          iceSeen++;
         } catch {
-          // ignore malformed/late candidates
+          // remote description likely isn't set yet — stop here and
+          // retry this same candidate on the next poll instead of
+          // silently dropping it.
+          break;
         }
       }
-      iceSeen = candidates.length;
     }, POLL_INTERVAL_MS);
     pollersRef.current.push(pollIce);
   }, [roomId, setupDataChannel]);
@@ -284,11 +287,12 @@ export function useFileTransferPeer(
     const pollIce = window.setInterval(async () => {
       const data = await getSignal({ roomId, kind: "ice", role: "offer" });
       const candidates: string[] = data.candidates || [];
-      for (let i = iceSeen; i < candidates.length; i++) {
+      while (iceSeen < candidates.length) {
         try {
-          await pc.addIceCandidate(JSON.parse(candidates[i]));
+          await pc.addIceCandidate(JSON.parse(candidates[iceSeen]));
+          iceSeen++;
         } catch {
-          // ignore malformed/late candidates
+          break;
         }
       }
       iceSeen = candidates.length;
