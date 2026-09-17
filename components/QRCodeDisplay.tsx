@@ -2,13 +2,29 @@
 
 import { QRCodeSVG } from "qrcode.react";
 
-export default function QRCodeDisplay({ url }: { url: string }) {
+export default function QRCodeDisplay({
+  url,
+  roomId,
+}: {
+  url: string;
+  roomId: string;
+}) {
+  const trackingCode = roomId.split("-")[0].toUpperCase();
+
   return (
-    <div className="qr-wrap">
-      <div className="qr-box">
-        <QRCodeSVG value={url} size={220} includeMargin />
+    <div className="qr-section">
+      <div className="qr-label">
+        <span className="qr-label-corner">SCAN</span>
+        <QRCodeSVG
+          value={url}
+          size={196}
+          bgColor="#e9dfc6"
+          fgColor="#2b2416"
+        />
       </div>
-      <p className="qr-url">{url}</p>
+      <div className="qr-code-id">
+        ROOM <span>{trackingCode}</span>
+      </div>
     </div>
   );
 }

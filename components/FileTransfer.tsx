@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { Fragment, useRef } from "react";
 import {
   ConnectionStatus,
   IncomingFile,
@@ -14,14 +14,55 @@ function formatBytes(bytes: number) {
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
-const STATUS_LABEL: Record<ConnectionStatus, string> = {
-  idle: "Starting…",
-  "waiting-for-peer": "Waiting for the other device to scan/join…",
-  connecting: "Connecting…",
-  connected: "Connected — ready to send files",
-  disconnected: "Disconnected",
-  failed: "Connection failed",
-};
+const STEPS = ["Waiting", "Connecting", "Connected"];
+
+function statusStepIndex(status: ConnectionStatus): number {
+  if (status === "idle" || status === "waiting-for-peer") return 0;
+  if (status === "connecting") return 1;
+  if (status === "connected") return 2;
+  return -1; // failed / disconnected
+}
+
+function Stepper({ status }: { status: ConnectionStatus }) {
+  if (status === "failed" || status === "disconnected") {
+    return (
+      <div className="stepper">
+        <div className="step step--error">
+          <span className="step-dot" />
+          {status === "failed" ? "Connection failed" : "Disconnected"}
+        </div>
+      </div>
+    );
+  }
+
+  const activeIdx = statusStepIndex(status);
+
+  return (
+    <div className="stepper">
+      {STEPS.map((label, i) => (
+        <Fragment key={label}>
+          <div
+            className={
+              "step" +
+              (i < activeIdx ? " step--done" : "") +
+              (i === activeIdx ? " step--active" : "")
+            }
+          >
+            <span className="step-dot" />
+            {label}
+          </div>
+          {i < STEPS.length - 1 && (
+            <div
+              className={
+                "step-connector" + (i < activeIdx ? " step-connector--done" : "")
+              }
+            />
+          )}
+        </Fragment>
+      ))}
+    </div>
+  );
+}
 
 export default function FileTransfer({
   status,
@@ -39,14 +80,14 @@ export default function FileTransfer({
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="ft-wrap">
-      <div className={`ft-status ft-status--${status}`}>
-        <span className="ft-dot" />
-        {STATUS_LABEL[status]}
-      </div>
-      {error && <div className="ft-error">{error}</div>}
+    <>
+      <div className="tear-divider" />
+      <Stepper status={status} />
+      <div className="tear-divider" />
 
-      <div className="ft-send">
+      <div className="transfer-section">
+        {error && <div className="ft-error">{error}</div>}
+
         <button
           className="ft-button"
           disabled={status !== "connected"}
@@ -64,53 +105,65 @@ export default function FileTransfer({
             e.target.value = "";
           }}
         />
+
+        {outgoingTransfers.length > 0 && (
+          <div className="manifest">
+            <p className="manifest-heading">SENDING</p>
+            {outgoingTransfers.map((t) => (
+              <div className="manifest-row" key={t.id}>
+                <div className="manifest-row-top">
+                  <span className="manifest-name">{t.name}</span>
+                </div>
+                <div className="manifest-track">
+                  <div
+                    className="manifest-fill"
+                    style={{ width: `${(t.sentBytes / t.size) * 100}%` }}
+                  />
+                </div>
+                <div className="manifest-meta">
+                  <span>
+                    {formatBytes(t.sentBytes)} / {formatBytes(t.size)}
+                  </span>
+                  {t.done && <span className="done-tag">SENT</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {incomingFiles.length > 0 && (
+          <div className="manifest">
+            <p className="manifest-heading">RECEIVED</p>
+            {incomingFiles.map((f) => (
+              <div className="manifest-row" key={f.id}>
+                <div className="manifest-row-top">
+                  <span className="manifest-name">{f.name}</span>
+                </div>
+                <div className="manifest-track">
+                  <div
+                    className="manifest-fill"
+                    style={{ width: `${(f.receivedBytes / f.size) * 100}%` }}
+                  />
+                </div>
+                <div className="manifest-meta">
+                  <span>
+                    {formatBytes(f.receivedBytes)} / {formatBytes(f.size)}
+                  </span>
+                  {f.done && f.url ? (
+                    <a
+                      className="manifest-download"
+                      href={f.url}
+                      download={f.name}
+                    >
+                      Download
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      {outgoingTransfers.length > 0 && (
-        <div className="ft-list">
-          <h3>Sending</h3>
-          {outgoingTransfers.map((t) => (
-            <div className="ft-item" key={t.id}>
-              <div className="ft-item-name">{t.name}</div>
-              <div className="ft-progress">
-                <div
-                  className="ft-progress-bar"
-                  style={{ width: `${(t.sentBytes / t.size) * 100}%` }}
-                />
-              </div>
-              <div className="ft-item-meta">
-                {formatBytes(t.sentBytes)} / {formatBytes(t.size)}
-                {t.done ? " · done" : ""}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {incomingFiles.length > 0 && (
-        <div className="ft-list">
-          <h3>Received</h3>
-          {incomingFiles.map((f) => (
-            <div className="ft-item" key={f.id}>
-              <div className="ft-item-name">{f.name}</div>
-              <div className="ft-progress">
-                <div
-                  className="ft-progress-bar"
-                  style={{ width: `${(f.receivedBytes / f.size) * 100}%` }}
-                />
-              </div>
-              <div className="ft-item-meta">
-                {formatBytes(f.receivedBytes)} / {formatBytes(f.size)}
-                {f.done && f.url ? (
-                  <a className="ft-download" href={f.url} download={f.name}>
-                    Download
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   );
 }

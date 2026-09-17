@@ -11,14 +11,24 @@ export default function RoomPage() {
   const { status, error, incomingFiles, outgoingTransfers, sendFile } =
     useFileTransferPeer(roomId, "client");
 
+  const trackingCode = roomId.split("-")[0].toUpperCase();
+
   return (
     <>
       <div className="header">
-        <h1>File Pathao</h1>
-        <p>Connecting to your PC…</p>
+        <div className="header-mark">
+          <h1>File Pathao</h1>
+          <p>Finding the other device…</p>
+        </div>
+        <span className="header-tag">P2P TRANSFER</span>
       </div>
 
       <div className="panel">
+        <div className="qr-section">
+          <div className="qr-code-id">
+            ROOM <span>{trackingCode}</span>
+          </div>
+        </div>
         <FileTransfer
           status={status}
           error={error}

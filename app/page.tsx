@@ -22,12 +22,17 @@ export default function HomePage() {
   return (
     <>
       <div className="header">
-        <h1>File Pathao</h1>
-        <p>Scan with your phone to connect — no cables, no Bluetooth.</p>
+        <div className="header-mark">
+          <h1>File Pathao</h1>
+          <p>Scan to connect your phone — no cables, no Bluetooth, nothing to install.</p>
+        </div>
+        <span className="header-tag">P2P TRANSFER</span>
       </div>
 
       <div className="panel">
-        {roomUrl ? <QRCodeDisplay url={roomUrl} /> : null}
+        {roomUrl && roomId ? (
+          <QRCodeDisplay url={roomUrl} roomId={roomId} />
+        ) : null}
         <FileTransfer
           status={status}
           error={error}
