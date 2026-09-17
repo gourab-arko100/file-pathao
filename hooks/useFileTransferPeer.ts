@@ -186,6 +186,7 @@ export function useFileTransferPeer(
     setupDataChannel(dc);
 
     pc.onicecandidate = (event) => {
+      console.log("[FP host] local ICE candidate:", event.candidate?.candidate ?? "(end of candidates)");
       if (event.candidate) {
         postSignal({
           roomId,
@@ -196,7 +197,18 @@ export function useFileTransferPeer(
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log("[FP host] iceConnectionState:", pc.iceConnectionState);
+    };
+    pc.onicegatheringstatechange = () => {
+      console.log("[FP host] iceGatheringState:", pc.iceGatheringState);
+    };
+    pc.onsignalingstatechange = () => {
+      console.log("[FP host] signalingState:", pc.signalingState);
+    };
+
     pc.onconnectionstatechange = () => {
+      console.log("[FP host] connectionState:", pc.connectionState);
       if (pc.connectionState === "failed") setStatus("failed");
       if (pc.connectionState === "disconnected") setStatus("disconnected");
     };
@@ -213,6 +225,7 @@ export function useFileTransferPeer(
     const pollAnswer = window.setInterval(async () => {
       const data = await getSignal({ roomId, kind: "sdp", role: "answer" });
       if (data.sdp && pc.signalingState === "have-local-offer") {
+        console.log("[FP host] got answer SDP, setting remote description");
         setStatus("connecting");
         await pc.setRemoteDescription({ type: "answer", sdp: data.sdp });
         window.clearInterval(pollAnswer);
@@ -245,9 +258,13 @@ export function useFileTransferPeer(
     const pc = new RTCPeerConnection({ iceServers: buildIceServers() });
     pcRef.current = pc;
 
-    pc.ondatachannel = (event) => setupDataChannel(event.channel);
+    pc.ondatachannel = (event) => {
+      console.log("[FP client] received data channel");
+      setupDataChannel(event.channel);
+    };
 
     pc.onicecandidate = (event) => {
+      console.log("[FP client] local ICE candidate:", event.candidate?.candidate ?? "(end of candidates)");
       if (event.candidate) {
         postSignal({
           roomId,
@@ -258,7 +275,18 @@ export function useFileTransferPeer(
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log("[FP client] iceConnectionState:", pc.iceConnectionState);
+    };
+    pc.onicegatheringstatechange = () => {
+      console.log("[FP client] iceGatheringState:", pc.iceGatheringState);
+    };
+    pc.onsignalingstatechange = () => {
+      console.log("[FP client] signalingState:", pc.signalingState);
+    };
+
     pc.onconnectionstatechange = () => {
+      console.log("[FP client] connectionState:", pc.connectionState);
       if (pc.connectionState === "failed") setStatus("failed");
       if (pc.connectionState === "disconnected") setStatus("disconnected");
     };
@@ -267,6 +295,7 @@ export function useFileTransferPeer(
     while (!offerSdp) {
       const data = await getSignal({ roomId, kind: "sdp", role: "offer" });
       if (data.sdp) {
+        console.log("[FP client] got offer SDP");
         offerSdp = data.sdp as string;
         break;
       }
